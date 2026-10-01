@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mr. Stoeckle's Math Class</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eef3f8;
+    --grid: #cfdbe8;
+    --ink: #14213d;
+    --ink-soft: #4a5873;
+    --pencil: #f2b705;
+    --red: #c93a3a;
+    --card: #ffffff;
+    --head: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+    --body: "Atkinson Hyperlegible", Verdana, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #101a2e;
+      --grid: #223452;
+      --ink: #eef3f8;
+      --ink-soft: #a9b6cc;
+      --card: #172540;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: var(--body);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.25rem; }
+
+  /* Hero */
+  header { padding: 3.5rem 0 2.5rem; }
+  h1 {
+    font-family: var(--head);
+    font-weight: 800;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem;
+  }
+  .lede { max-width: 44ch; color: var(--ink-soft); margin: 0; font-size: 1.15rem; }
+
+
+  /* Sections */
+  section { padding: 1.75rem 0; }
+  h2 { font-family: var(--head); font-weight: 800; font-size: 1.75rem; margin: 0 0 1rem; letter-spacing: -0.01em; }
+
+  .now { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .now div { background: var(--card); border: 2px solid var(--ink); border-radius: 6px; padding: 1rem 1.15rem; }
+  .now .current { border-left: 10px solid var(--pencil); }
+  .now h3 { font-family: var(--head); margin: 0 0 0.35rem; font-size: 1.15rem; }
+  .now p { margin: 0; color: var(--ink-soft); }
+
+  .projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; list-style: none; padding: 0; margin: 0; }
+  .projects a {
+    display: block; height: 100%;
+    text-decoration: none;
+    background: var(--card);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 1.1rem 1.15rem 1.2rem;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .projects a:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 var(--ink); }
+  .projects h3 { font-family: var(--head); font-size: 1.2rem; margin: 0 0 0.3rem; }
+  .projects p { margin: 0; color: var(--ink-soft); font-size: 0.98rem; }
+  .projects .tag { display: inline-block; font-size: 0.85rem; font-weight: 700; background: var(--pencil); color: #14213d; padding: 0.05rem 0.5rem; border-radius: 3px; margin-bottom: 0.6rem; }
+
+  footer { padding: 2.5rem 0 3rem; color: var(--ink-soft); font-size: 0.95rem; }
+
+  @media (max-width: 760px) {
+    .now { grid-template-columns: 1fr; }
+    header { padding-top: 2rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .projects a { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hero">
+    <div>
+      <h1>Mr. Stoeckle's Math Class</h1>
+      <p class="lede">Room 414 &middot; Find our class projects and tools below.</p>
+    </div>
+
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section aria-labelledby="now-h">
+    <h2 id="now-h">Where we are</h2>
+    <div class="now">
+      <div class="current">
+        <h3>Now: Chapter 2 - Linear Functions</h3>
+        <p>Finding slope and y-intercept, then using them to graph lines.</p>
+      </div>
+      <div>
+        <h3>Next: Chapter 3 - Transformations</h3>
+        <p>Translations, reflections, and rotations.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="proj-h">
+    <h2 id="proj-h">Projects</h2>
+    <!--
+      EDIT: replace each href="#" with your project's link, and update the title and description.
+      To add another project, copy a whole <li>...</li> block.
+      Delete the <span class="tag"> line if you don't want a label.
+    -->
+    <ul class="projects">
+      <li>
+        <a href="https://smemathclass.netlify.app/Solving_Equations_Image_Reveal.html" target="_blank" rel="noopener">
+          <span class="tag">Appendix A</span>
+          <h3>Solving Equations Image Reveal</h3>
+          <p>Solve equations to reveal a hidden image.</p>
+        </a>
+      </li>
+      <li>
+        <a href="https://smemathclass.netlify.app/Operation_Firewall.html" target="_blank" rel="noopener">
+          <span class="tag">Appendix A</span>
+          <h3>Code Red: Operation Breakout</h3>
+          <p>One sentence about what students do here.</p>
+        </a>
+      </li>
+      <li>
+        <a href="https://smemathclass.netlify.app/Slope_Explorer.html" target="_blank" rel="noopener">
+          <span class="tag">Chapter 2</span>
+          <h3>Slope Explorer</h3>
+          <p>One sentence about what students do here.</p>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">Questions? Ask in class or email [your email].</div>
+</footer>
+
+</body>
+</html>

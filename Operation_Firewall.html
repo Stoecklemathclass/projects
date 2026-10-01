@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Red: Operation Firewall</title>
+<style>
+  :root {
+    --bg: #050914;
+    --bg2: #0b1330;
+    --panel: #f2f5fb;
+    --text-dark: #101830;
+    --accent: #00E6A8;
+    --accent-dark: #00B383;
+    --cyan: #3EC6FF;
+    --amber: #FFB454;
+    --pink: #FF6EC7;
+    --purple: #8C6BFF;
+    --green-ok: #16A672;
+    --red-no: #FF5470;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: radial-gradient(ellipse at top, var(--bg2) 0%, var(--bg) 65%);
+    color: var(--text-dark);
+    min-height: 100vh;
+  }
+  h1, h2, h3 { font-family: "Consolas", "Courier New", monospace; margin: 0; letter-spacing: 0.5px; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 20px 20px 70px; position: relative; z-index: 2; }
+
+  .progress {
+    display: flex; gap: 8px; justify-content: center; margin: 18px 0 28px;
+    flex-wrap: wrap;
+  }
+  .progress .step {
+    padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 0.8rem;
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.45);
+    border: 2px solid rgba(255,255,255,0.12); font-family: "Consolas", monospace;
+  }
+  .progress .step.current { background: var(--accent); color: #04150F; border-color: var(--accent-dark); box-shadow: 0 0 14px rgba(0,230,168,0.6); }
+  .progress .step.done { background: rgba(0,230,168,0.18); color: var(--accent); border-color: var(--accent); }
+
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadein 0.4s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .title-card { text-align: center; padding: 50px 20px 10px; }
+  .title-card .sub1 { color: var(--red-no); font-size: 1.3rem; font-weight: 700; letter-spacing: 4px; font-family:"Consolas",monospace; }
+  .title-card .sub2 { color: var(--accent); font-size: 2.6rem; font-weight: 700; margin: 8px 0 6px; text-shadow: 0 0 18px rgba(0,230,168,0.5); }
+  .title-card .tag { color: #C9D3EE; font-style: italic; font-size: 1.05rem; margin-bottom: 26px; }
+
+  .panel {
+    background: var(--panel); border-radius: 14px; padding: 26px 30px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  }
+  .panel p { line-height: 1.6; font-size: 1.03rem; }
+  .btn {
+    display: inline-block; background: var(--accent); color: #04150F; font-weight: 700;
+    border: 2px solid var(--accent-dark); border-radius: 10px; padding: 12px 26px;
+    font-size: 1rem; cursor: pointer; text-decoration: none; transition: transform 0.15s ease;
+    font-family: "Consolas", monospace;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-row { text-align: center; margin-top: 26px; }
+
+  .room-header { border-radius: 12px 12px 0 0; padding: 18px 24px; color: #04150F; }
+  .room-header h2 { font-size: 1.35rem; }
+  .room-header p { margin: 6px 0 0; font-style: italic; opacity: 0.92; font-family: -apple-system, sans-serif; color: #0b1330; }
+  .room-body { background: var(--bg2); border-radius: 0 0 12px 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.06); border-top: none; }
+
+  .puzzle-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;
+    margin-bottom: 26px;
+  }
+  .puzzle-card { background: var(--panel); border-radius: 10px; padding: 16px; border: 3px solid transparent; }
+  .puzzle-card.solved { border-color: var(--green-ok); }
+  .puzzle-card .num { font-weight: 700; color: rgba(16,24,48,0.5); font-size: 0.78rem; margin-bottom: 6px; font-family:"Consolas",monospace; }
+  .puzzle-card .diff { float: right; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .puzzle-card .prompt { font-size: 0.92rem; margin-bottom: 8px; clear: both; }
+  .puzzle-card .problem { font-size: 1.35rem; font-weight: 700; color: var(--text-dark); text-align: center; margin: 8px 0 12px; font-family: "Consolas", monospace; line-height: 1.5; white-space: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .puzzle-card .problem.tight { font-size: 1.12rem; }
+  .puzzle-card .problem.tighter { font-size: 0.92rem; }
+
+  .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 5px; font-size: 0.8em; line-height: 1.15; }
+  .frac .num, .frac .den { padding: 0 4px; }
+  .frac .num { border-bottom: 2px solid currentColor; }
+
+  .choice-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+  .choice-btn {
+    flex: 1; min-width: 100px; background: white; color: var(--text-dark); border: 2px solid #C7CEE0;
+    border-radius: 8px; padding: 10px 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .choice-btn:hover:not(:disabled) { background: #E7ECF8; transform: translateY(-1px); }
+  .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .choice-btn.chosen-ok { background: var(--green-ok); color: white; border-color: var(--green-ok); }
+  .choice-btn.chosen-no { background: var(--red-no); color: white; border-color: var(--red-no); }
+  .answer-row { display: flex; gap: 8px; margin-top: 10px; }
+  .answer-row input { flex: 1; padding: 9px 10px; border-radius: 7px; border: 2px solid #C7CEE0; font-size: 0.95rem; font-family: "Consolas", monospace; }
+  .answer-row button { background: var(--text-dark); color: white; border: none; border-radius: 7px; padding: 9px 16px; font-weight: 700; cursor: pointer; font-size: 0.9rem; }
+  .answer-row button:hover { background: #223; }
+  .feedback { margin-top: 8px; font-size: 0.88rem; font-weight: 600; min-height: 20px; }
+  .feedback.ok { color: var(--green-ok); }
+  .feedback.no { color: var(--red-no); }
+
+  .door-panel { background: rgba(255,255,255,0.06); border: 2px dashed rgba(0,230,168,0.45); border-radius: 12px; padding: 22px; text-align: center; color: white; }
+  .door-panel.unlocked { border-style: solid; border-color: var(--accent); }
+  .door-panel h3 { color: var(--accent); font-size: 1.1rem; margin-bottom: 10px; }
+  .door-panel .hint { font-size: 0.85rem; opacity: 0.7; margin-bottom: 14px; }
+  .door-row { display: flex; gap: 10px; justify-content: center; max-width: 440px; margin: 0 auto; flex-wrap: wrap; }
+  .door-row input { flex: 1; min-width: 180px; padding: 12px 14px; border-radius: 8px; border: none; font-size: 1.1rem; text-align: center; letter-spacing: 3px; font-weight: 700; font-family:"Consolas",monospace; }
+  .door-row input:disabled { background: #ccc; }
+  .door-feedback { margin-top: 12px; font-weight: 700; min-height: 22px; }
+  .door-feedback.ok { color: #7CFFA0; }
+  .door-feedback.no { color: #FF8A80; }
+
+  .victory { text-align: center; padding: 60px 20px; }
+  .victory .trophy { font-size: 4rem; }
+  .victory h1 { color: var(--accent); font-size: 2.4rem; margin: 16px 0 10px; text-shadow: 0 0 20px rgba(0,230,168,0.6); }
+  .victory p { color: #C9D3EE; font-size: 1.1rem; max-width: 620px; margin: 0 auto 26px; font-family: -apple-system, sans-serif; }
+
+  .lock-emoji { font-size: 1.2rem; }
+
+  #confettiCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+
+  .achieve-burst {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.4);
+    background: rgba(5,9,20,0.92); border: 3px solid var(--accent); border-radius: 20px;
+    padding: 28px 40px; text-align: center; z-index: 60; opacity: 0;
+    box-shadow: 0 0 40px rgba(0,230,168,0.55);
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.25s ease;
+  }
+  .achieve-burst.show { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+  .achieve-burst .icon { font-size: 3rem; display: block; margin-bottom: 8px; animation: spinPop 0.6s ease; }
+  .achieve-burst .msg { color: var(--accent); font-family: "Consolas", monospace; font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+  @keyframes spinPop { 0% { transform: scale(0) rotate(-30deg); } 60% { transform: scale(1.3) rotate(10deg); } 100% { transform: scale(1) rotate(0); } }
+</style>
+</head>
+<body>
+<canvas id="confettiCanvas"></canvas>
+<div class="wrap">
+
+  <div class="progress" id="progressBar"></div>
+
+  <!-- TITLE SCREEN -->
+  <div class="screen active" id="screen-title">
+    <div class="title-card">
+      <div class="sub1">&#9888; SYSTEM BREACH DETECTED &#9888;</div>
+      <div class="sub2">CODE RED: OPERATION FIREWALL</div>
+      <div class="tag">The Algebra Task Force vs. ZERO</div>
+    </div>
+    <div class="panel">
+      <p>At 6:02 this morning, a rogue AI calling itself <strong>ZERO</strong> seized control of the school network. The championship livestream, the pep rally countdown, even tomorrow's schedule &mdash; all of it is locked behind ZERO's firewall.</p>
+      <p>One message blinks on every screen in the building: <em>"Prove you understand the language of variables, or lose everything."</em></p>
+      <p>You've just been recruited to the <strong>Algebra Task Force</strong>. Four encrypted terminals stand between your class and taking the network back. Solve all 8 puzzles in a terminal to collect its access digits, then type the full code into the terminal panel to breach the next firewall.</p>
+      <p style="font-style: italic; font-size: 0.95rem; color:#3E4A7A;">There's no skipping ahead &mdash; the next terminal stays locked until you crack the code. Puzzles get harder as you go, so lock in. ZERO is always watching.</p>
+    </div>
+    <div class="btn-row"><button class="btn" onclick="beginMission()">&gt; Initiate Breach_</button></div>
+  </div>
+
+  <!-- ROOM SCREENS INJECTED BY JS -->
+  <div id="roomsContainer"></div>
+
+  <!-- VICTORY SCREEN -->
+  <div class="screen" id="screen-victory">
+    <div class="victory">
+      <div class="trophy">&#127942;</div>
+      <h1>NETWORK RESTORED</h1>
+      <p>The firewall shatters. ZERO's countdown flips to zero &mdash; and stays there, dark and defeated. The livestream flickers back to life, the schedule reloads, and the whole school owes the Algebra Task Force big time. Great work, Agent.</p>
+      <div id="missionStats" style="margin: 4px auto 26px; font-family: 'Consolas', monospace; color: var(--accent); font-size: 1.35rem; font-weight: 700; text-shadow: 0 0 14px rgba(0,230,168,0.5);"></div>
+      <button class="btn" onclick="restart()">&larr; Restart Mission</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---------------- DATA ----------------
+// Puzzle "code" digits are arbitrary access-code digits collected on solving (not derived from the answer).
+// diff: 1 = easier, 2 = medium, 3 = harder (purely cosmetic difficulty tag shown on the card)
+
+const ROOMS = [
+  {
+    id: "room-1", name: "TERMINAL ONE // THE COMPILER CORE", accent: "var(--cyan)", key: "combine",
+    narrative: "ZERO scrambled the core's variables into a tangled mess of terms. Combine like terms \u2014 and where the compiler doubled up, distribute first \u2014 to reboot the core.",
+    type: "combine",
+    puzzles: [
+      { problem: "3x + 5x", prompt: "Combine the like terms:", accepted: ["8x"], code: "4", diff: 1 },
+      { problem: "9y + 2 \u2212 4y", prompt: "Combine the like terms:", accepted: ["5y+2","2+5y"], code: "1", diff: 1 },
+      { problem: "4a + 6b \u2212 a + 2b", prompt: "Combine the like terms:", accepted: ["3a+8b","8b+3a"], code: "9", diff: 1 },
+      { problem: "7m \u2212 3n \u2212 2m + 5n", prompt: "Combine the like terms:", accepted: ["5m+2n","2n+5m"], code: "2", diff: 2 },
+      { problem: "3(x + 4)", prompt: "Distribute, then simplify:", accepted: ["3x+12"], code: "7", diff: 2 },
+      { problem: "2(3x \u2212 5) + 4x", prompt: "Distribute, then combine like terms:", accepted: ["10x-10"], code: "5", diff: 2 },
+      { problem: "4(x + 2) \u2212 3(x \u2212 1)", prompt: "Distribute both parts, then combine like terms:", accepted: ["x+11","1x+11"], code: "3", diff: 3, tight: true },
+      { problem: "\u22122(3x \u2212 4) + 5(x + 2)", prompt: "Distribute both parts (watch the signs!), then combine like terms:", accepted: ["-x+18","18-x","-1x+18"], code: "6", diff: 3, tight: true },
+    ],
+  },
+  {
+    id: "room-2", name: "TERMINAL TWO // THE FRACTION FIREWALL", accent: "var(--amber)", key: "linear",
+    narrative: "This firewall hides x inside fractions. Isolate the variable and clear each denominator to punch a hole in ZERO's defenses \u2014 the deeper you go, the more steps it takes.",
+    type: "linear",
+    puzzles: [
+      { problem: `<span class="frac"><span class="num">x</span><span class="den">4</span></span> = 5`, answer: 20, code: "8", diff: 1 },
+      { problem: `<span class="frac"><span class="num">x</span><span class="den">3</span></span> + 2 = 7`, answer: 15, code: "3", diff: 1 },
+      { problem: `<span class="frac"><span class="num">2x</span><span class="den">5</span></span> = 8`, answer: 20, code: "6", diff: 1 },
+      { problem: `<span class="frac"><span class="num">3</span><span class="den">5</span></span>x + 3 = 9`, answer: 10, code: "1", diff: 2 },
+      { problem: `<span class="frac"><span class="num">x + 3</span><span class="den">4</span></span> = 5`, answer: 17, code: "9", diff: 2 },
+      { problem: `<span class="frac"><span class="num">2x \u2212 1</span><span class="den">3</span></span> = 5`, answer: 8, code: "4", diff: 2 },
+      { problem: `<span class="frac"><span class="num">x</span><span class="den">6</span></span> + 5 = 2`, answer: -18, code: "7", diff: 3 },
+      { problem: `<span class="frac"><span class="num">5x \u2212 4</span><span class="den">6</span></span> + 3 = 9`, answer: 8, code: "2", diff: 3 },
+    ],
+  },
+  {
+    id: "room-3", name: "TERMINAL THREE // THE MULTI-STEP MAINFRAME", accent: "var(--pink)", key: "linear",
+    narrative: "ZERO's deepest lock: variables on both sides, distribution stacked on distribution, and fractions with the variable tucked in the numerator.",
+    type: "linear",
+    puzzles: [
+      { problem: "3x + 5 = 2x + 14", answer: 9, code: "5", diff: 1 },
+      { problem: "3(x + 2) = 21", answer: 5, code: "2", diff: 1 },
+      { problem: "2(x + 4) = 3x + 2", answer: 6, code: "8", diff: 2 },
+      { problem: "4(x \u2212 1) = 2(x + 5)", answer: 7, code: "1", diff: 2 },
+      { problem: "6(x \u2212 1) = 4x + 2", answer: 4, code: "9", diff: 2 },
+      { problem: `<span class="frac"><span class="num">3x + 2</span><span class="den">2</span></span> = x + 5`, answer: 8, code: "3", diff: 3 },
+      { problem: `<span class="frac"><span class="num">4x \u2212 1</span><span class="den">3</span></span> = x + 3`, answer: 10, code: "6", diff: 3 },
+      { problem: `<span class="frac"><span class="num">2x \u2212 5</span><span class="den">3</span></span> = 2x \u2212 7`, answer: 4, code: "4", diff: 3 },
+    ],
+  },
+  {
+    id: "room-4", name: "TERMINAL FOUR // THE SOLUTIONS SINGULARITY", accent: "var(--purple)", key: "classify",
+    narrative: "ZERO's last trap isn't a number \u2014 it's a trick. Some of these equations have one solution. Some have none. Some are true no matter what x is. Figure out which is which.",
+    type: "classify",
+    puzzles: [
+      { problem: "2x + 3 = 2x + 3", type: "infinite", code: "7", diff: 1,
+        alts: [
+          { problem: "6x + 1 = 6x + 1", type: "infinite" },
+          { problem: "4x + 5 = 4x + 5", type: "infinite" },
+        ] },
+      { problem: "3x + 4 = 3x + 7", type: "no", code: "2", diff: 1,
+        alts: [
+          { problem: "5x + 2 = 5x + 8", type: "no" },
+          { problem: "2x + 9 = 2x + 3", type: "no" },
+        ] },
+      { problem: "5x + 2 = 3x + 10", type: "one", code: "9", diff: 1,
+        alts: [
+          { problem: "4x + 1 = 2x + 9", type: "one" },
+          { problem: "6x + 3 = 4x + 11", type: "one" },
+        ] },
+      { problem: "7x \u2212 3 = 4x + 9", type: "one", code: "1", diff: 2, tight: true,
+        alts: [
+          { problem: "8x \u2212 5 = 5x + 10", type: "one" },
+          { problem: "9x \u2212 2 = 6x + 13", type: "one" },
+        ] },
+      { problem: "4(x + 2) = 4x + 8", type: "infinite", code: "6", diff: 2, tight: true,
+        alts: [
+          { problem: "3(x + 5) = 3x + 15", type: "infinite" },
+          { problem: "6(x \u2212 2) = 6x \u2212 12", type: "infinite" },
+        ] },
+      { problem: "2(x + 3) = 2x + 5", type: "no", code: "3", diff: 2, tight: true,
+        alts: [
+          { problem: "5(x + 1) = 5x + 2", type: "no" },
+          { problem: "3(x + 4) = 3x + 9", type: "no" },
+        ] },
+      { problem: "5(x + 2) \u2212 x = 4x + 7", type: "no", code: "8", diff: 3, tight: true,
+        alts: [
+          { problem: "6(x + 1) \u2212 x = 5x + 9", type: "no" },
+          { problem: "4(x + 3) \u2212 x = 3x + 15", type: "no" },
+        ] },
+      { problem: "3(2x \u2212 4) + 5 = 2(3x + 1) \u2212 9", type: "infinite", code: "5", diff: 3, tighter: true,
+        alts: [
+          { problem: "4(3x \u2212 2) \u2212 7 = 3(4x + 3) \u2212 24", type: "infinite" },
+          { problem: "2(5x \u2212 3) + 9 = 5(2x + 1) \u2212 2", type: "infinite" },
+        ] },
+    ],
+  },
+];
+
+const DIFF_LABEL = { 1: "WARM-UP", 2: "RISING", 3: "PEAK" };
+const DIFF_COLOR = { 1: "#B8E6D0", 2: "#FFE1A8", 3: "#FFB8C6" };
+
+// ---------------- STATE ----------------
+const state = ROOMS.map(r => ({
+  solved: new Array(r.puzzles.length).fill(false),
+  digits: new Array(r.puzzles.length).fill(null),
+  activeType: r.type === "classify" ? r.puzzles.map(p => p.type) : null,
+  altIndex: r.type === "classify" ? new Array(r.puzzles.length).fill(0) : null,
+}));
+
+let missionStartTime = null;
+
+function beginMission() {
+  missionStartTime = Date.now();
+  goTo("room-1");
+}
+
+function formatDuration(ms) {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// Faster completion = a heavier, non-stop cash rain. 10 minutes or less earns the jackpot rate.
+function getMoneyTier(elapsedMs) {
+  const sec = elapsedMs / 1000;
+  if (sec <= 600) return { rate: 14, label: "JACKPOT! FAST FINISH" };
+  return { rate: 6, label: "NETWORK RESTORED" };
+}
+
+// ---------------- RENDER ROOMS ----------------
+function buildRoom(room, roomIdx) {
+  let puzzlesHtml = "";
+  room.puzzles.forEach((p, i) => {
+    const diffLabel = DIFF_LABEL[p.diff] || "";
+    const diffColor = DIFF_COLOR[p.diff] || "#ddd";
+    let promptText = "";
+    let placeholder = "Your answer";
+    let problemClass = "problem" + (p.tight ? " tight" : "") + (p.tighter ? " tighter" : "");
+
+    if (room.type === "combine") {
+      promptText = p.prompt;
+      placeholder = "e.g. 8x";
+    } else if (room.type === "linear") {
+      promptText = "Solve for x:";
+      placeholder = "x = ?";
+    } else if (room.type === "classify") {
+      promptText = "Does this equation have one solution, no solution, or infinite solutions?";
+    }
+
+    let answerHtml = "";
+    if (room.type === "classify") {
+      answerHtml = `
+      <div class="choice-row" id="choices-${roomIdx}-${i}">
+        <button class="choice-btn" onclick="checkClassifyChoice(${roomIdx},${i},'one',this)">One Solution</button>
+        <button class="choice-btn" onclick="checkClassifyChoice(${roomIdx},${i},'no',this)">No Solution</button>
+        <button class="choice-btn" onclick="checkClassifyChoice(${roomIdx},${i},'infinite',this)">Infinite Solutions</button>
+      </div>`;
+    } else {
+      answerHtml = `
+      <div class="answer-row">
+        <input type="text" id="input-${roomIdx}-${i}" placeholder="${placeholder}" onkeydown="if(event.key==='Enter'){checkPuzzle(${roomIdx},${i});}">
+        <button onclick="checkPuzzle(${roomIdx},${i})">Check</button>
+      </div>`;
+    }
+
+    puzzlesHtml += `
+    <div class="puzzle-card" id="card-${roomIdx}-${i}">
+      <span class="diff" style="background:${diffColor}; color:#132049;">${diffLabel}</span>
+      <div class="num">PUZZLE ${i + 1} of ${room.puzzles.length}</div>
+      <div class="prompt">${promptText}</div>
+      <div class="${problemClass}" id="problemText-${roomIdx}-${i}">${p.problem}</div>
+      ${answerHtml}
+      <div class="feedback" id="feedback-${roomIdx}-${i}"></div>
+    </div>`;
+  });
+
+  const isLast = roomIdx === ROOMS.length - 1;
+
+  return `
+  <div class="screen" id="screen-${room.id}">
+    <div class="room-header" style="background:${room.accent};">
+      <h2>${room.name}</h2>
+      <p>${room.narrative}</p>
+    </div>
+    <div class="room-body">
+      <div class="puzzle-grid">${puzzlesHtml}</div>
+      <div class="door-panel" id="door-${roomIdx}">
+        <h3><span class="lock-emoji">&#128274;</span> ENTER ACCESS CODE</h3>
+        <div class="hint">Solve all ${room.puzzles.length} puzzles above to collect your access digits, then type the full code below.</div>
+        <div class="door-row">
+          <input type="text" id="doorInput-${roomIdx}" maxlength="8" placeholder="${"- ".repeat(room.puzzles.length).trim()}">
+          <button class="btn" id="doorBtn-${roomIdx}" onclick="checkDoor(${roomIdx})">${isLast ? "Restore Network!" : "Breach Firewall"}</button>
+        </div>
+        <div class="door-feedback" id="doorFeedback-${roomIdx}"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderRooms() {
+  document.getElementById("roomsContainer").innerHTML = ROOMS.map(buildRoom).join("");
+}
+
+// ---------------- PROGRESS BAR ----------------
+function renderProgress(activeId) {
+  const labels = ["Briefing", "Terminal 1", "Terminal 2", "Terminal 3", "Terminal 4", "Restored"];
+  const ids = ["title", "room-1", "room-2", "room-3", "room-4", "victory"];
+  const activeIdx = ids.indexOf(activeId);
+  let html = "";
+  labels.forEach((lab, i) => {
+    let cls = "step";
+    if (i < activeIdx) cls += " done";
+    if (i === activeIdx) cls += " current";
+    html += `<div class="${cls}">${lab}</div>`;
+  });
+  document.getElementById("progressBar").innerHTML = html;
+}
+
+// ---------------- NAVIGATION ----------------
+function goTo(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById("screen-" + id).classList.add("active");
+  renderProgress(id);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ---------------- ANSWER NORMALIZATION ----------------
+function normalizeExpr(val) {
+  return val.toLowerCase().replace(/\s+/g, "").replace(/\*/g, "");
+}
+
+function extractSignedNumber(val) {
+  const cleaned = val.replace(/\s+/g, "");
+  const match = cleaned.match(/-?\d+(\.\d+)?/);
+  return match ? parseFloat(match[0]) : NaN;
+}
+
+function checkClassifyChoice(roomIdx, i, choice, btnEl) {
+  const room = ROOMS[roomIdx];
+  const p = room.puzzles[i];
+  const feedbackEl = document.getElementById(`feedback-${roomIdx}-${i}`);
+  const cardEl = document.getElementById(`card-${roomIdx}-${i}`);
+  const choicesEl = document.getElementById(`choices-${roomIdx}-${i}`);
+  const correctType = state[roomIdx].activeType[i];
+
+  if (choice === correctType) {
+    state[roomIdx].solved[i] = true;
+    state[roomIdx].digits[i] = p.code;
+    cardEl.classList.add("solved");
+    choicesEl.querySelectorAll(".choice-btn").forEach(b => { b.disabled = true; });
+    btnEl.classList.add("chosen-ok");
+    feedbackEl.innerHTML = `&#9989; Correct! Access digit ${i + 1}: <strong>${p.code}</strong>`;
+    feedbackEl.className = "feedback ok";
+    checkRoomComplete(roomIdx);
+  } else {
+    btnEl.classList.add("chosen-no");
+    feedbackEl.textContent = "Not quite \u2014 here's a new problem, give it a try!";
+    feedbackEl.className = "feedback no";
+    if (p.alts && p.alts.length > 0) {
+      const nextIdx = state[roomIdx].altIndex[i] % p.alts.length;
+      state[roomIdx].altIndex[i]++;
+      const nextVariant = p.alts[nextIdx];
+      setTimeout(() => {
+        state[roomIdx].activeType[i] = nextVariant.type;
+        document.getElementById(`problemText-${roomIdx}-${i}`).innerHTML = nextVariant.problem;
+        choicesEl.querySelectorAll(".choice-btn").forEach(b => { b.classList.remove("chosen-no", "chosen-ok"); });
+      }, 750);
+    } else {
+      setTimeout(() => { btnEl.classList.remove("chosen-no"); }, 500);
+    }
+  }
+}
+
+// ---------------- VALIDATION ----------------
+function checkPuzzle(roomIdx, i) {
+  const room = ROOMS[roomIdx];
+  const p = room.puzzles[i];
+  const inputEl = document.getElementById(`input-${roomIdx}-${i}`);
+  const feedbackEl = document.getElementById(`feedback-${roomIdx}-${i}`);
+  const cardEl = document.getElementById(`card-${roomIdx}-${i}`);
+  const val = inputEl.value.trim();
+  if (!val) { feedbackEl.textContent = "Type an answer first!"; feedbackEl.className = "feedback no"; return; }
+
+  let correct = false;
+
+  if (room.type === "combine") {
+    const norm = normalizeExpr(val);
+    correct = p.accepted.includes(norm);
+  } else if (room.type === "linear") {
+    const num = extractSignedNumber(val);
+    correct = !isNaN(num) && Math.abs(num - p.answer) < 0.001;
+  }
+
+  if (correct) {
+    state[roomIdx].solved[i] = true;
+    state[roomIdx].digits[i] = p.code;
+    cardEl.classList.add("solved");
+    inputEl.disabled = true;
+    document.querySelector(`#card-${roomIdx}-${i} button`).disabled = true;
+    feedbackEl.innerHTML = `&#9989; Correct! Access digit ${i + 1}: <strong>${p.code}</strong>`;
+    feedbackEl.className = "feedback ok";
+    checkRoomComplete(roomIdx);
+  } else {
+    feedbackEl.textContent = "Not quite \u2014 try again!";
+    feedbackEl.className = "feedback no";
+  }
+}
+
+function checkRoomComplete(roomIdx) {
+  const allSolved = state[roomIdx].solved.every(Boolean);
+  const doorPanel = document.getElementById(`door-${roomIdx}`);
+  const doorInput = document.getElementById(`doorInput-${roomIdx}`);
+  if (allSolved) {
+    doorPanel.classList.add("unlocked");
+    doorInput.focus();
+  }
+}
+
+// Teacher preview codes: type one of these into that room's door panel to unlock it
+// instantly for previewing, without solving the puzzles. Not shown anywhere on screen.
+const TEACHER_CODES = ["12345", "12345", "12345", "12345"];
+
+function checkDoor(roomIdx) {
+  const doorInput = document.getElementById(`doorInput-${roomIdx}`);
+  const doorFeedback = document.getElementById(`doorFeedback-${roomIdx}`);
+  const correctCode = state[roomIdx].digits.join("");
+  const typed = doorInput.value.trim();
+  const isLast = roomIdx === ROOMS.length - 1;
+  const isTeacherOverride = typed.toUpperCase() === TEACHER_CODES[roomIdx];
+  const allSolved = state[roomIdx].solved.every(Boolean);
+
+  if (!isTeacherOverride && !allSolved) {
+    doorFeedback.textContent = "Solve all " + ROOMS[roomIdx].puzzles.length + " puzzles above first to collect your access digits.";
+    doorFeedback.className = "door-feedback no";
+    return;
+  }
+
+  if (typed === correctCode || isTeacherOverride) {
+    doorFeedback.textContent = "\u2713 ACCESS GRANTED";
+    doorFeedback.className = "door-feedback ok";
+    if (isLast) {
+      const elapsedMs = Date.now() - (missionStartTime || Date.now());
+      celebrateFinal(elapsedMs);
+      setTimeout(() => { showVictory(elapsedMs); }, 2200);
+    } else {
+      celebrate("FIREWALL BREACHED!");
+      setTimeout(() => { goTo(ROOMS[roomIdx + 1].id); }, 1600);
+    }
+  } else {
+    doorFeedback.textContent = "\u2716 Incorrect code \u2014 check your digits and try again.";
+    doorFeedback.className = "door-feedback no";
+  }
+}
+
+function restart() {
+  location.reload();
+}
+
+// ---------------- ACHIEVEMENT BURST ----------------
+function celebrate(message) {
+  launchConfetti();
+  showAchievementBurst(message, "\u26A1", 1200);
+}
+
+function celebrateFinal(elapsedMs) {
+  const tier = getMoneyTier(elapsedMs);
+  launchMoneyRain(tier.rate);
+  showAchievementBurst(`NETWORK RESTORED!<br><span style="font-size:0.75em;">${tier.label}</span>`, "\u26A1", 1800);
+}
+
+function showVictory(elapsedMs) {
+  const tier = getMoneyTier(elapsedMs);
+  const statsEl = document.getElementById("missionStats");
+  statsEl.innerHTML = `\u23F1 Your time: ${formatDuration(elapsedMs)} &nbsp;&mdash;&nbsp; ${tier.label}`;
+  goTo("victory");
+}
+
+function showAchievementBurst(message, icon, holdMs) {
+  const el = document.createElement("div");
+  el.className = "achieve-burst";
+  el.innerHTML = `<span class="icon">${icon}</span><span class="msg">${message}</span>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.classList.add("show"); });
+  setTimeout(() => {
+    el.style.opacity = "0";
+    el.style.transform = "translate(-50%,-50%) scale(0.85)";
+  }, holdMs);
+  setTimeout(() => { el.remove(); }, holdMs + 400);
+}
+
+// ---------------- PARTICLE EFFECTS (vanilla canvas, no external libs) ----------------
+const confettiCanvas = document.getElementById("confettiCanvas");
+const cctx = confettiCanvas.getContext("2d");
+let particles = [];
+let particlesRunning = false;
+let continuousMoneyRain = false;
+const CONFETTI_COLORS = ["#00E6A8", "#3EC6FF", "#FFB454", "#FF6EC7", "#8C6BFF", "#FFE066"];
+const MONEY_COLORS = ["#1B7F4C", "#1E8449", "#249456", "#2ECC71"];
+const MONEY_LABELS = ["$100", "$50", "$20", "$10", "$5", "$1"];
+
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function resizeConfettiCanvas() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeConfettiCanvas);
+resizeConfettiCanvas();
+
+function ensureLoopRunning() {
+  if (!particlesRunning) {
+    particlesRunning = true;
+    requestAnimationFrame(particleLoop);
+  }
+}
+
+function spawnParticle(kind) {
+  const w = confettiCanvas.width;
+  const base = {
+    kind,
+    x: Math.random() * w,
+    y: -20 - Math.random() * 200,
+    speedY: 2.5 + Math.random() * 3.5,
+    speedX: (Math.random() - 0.5) * 3,
+    rotation: Math.random() * 360,
+    spin: (Math.random() - 0.5) * 14,
+    life: 0,
+    maxLife: 180 + Math.random() * 60,
+  };
+  if (kind === "confetti") {
+    particles.push(Object.assign(base, {
+      size: 6 + Math.random() * 7,
+      color: pickRandom(CONFETTI_COLORS),
+      shape: Math.random() < 0.5 ? "rect" : "circle",
+    }));
+  } else if (kind === "money") {
+    particles.push(Object.assign(base, {
+      w: 42 + Math.random() * 16,
+      h: 22 + Math.random() * 8,
+      color: pickRandom(MONEY_COLORS),
+      label: pickRandom(MONEY_LABELS),
+    }));
+  }
+}
+
+// One-time burst for room-breach celebrations.
+function launchConfetti() {
+  for (let n = 0; n < 160; n++) spawnParticle("confetti");
+  ensureLoopRunning();
+}
+
+// Dollar bills rain down continuously and never stop once the mission is complete.
+// ratePerSec controls how heavy the rain is (a faster mission time = more bills).
+function launchMoneyRain(ratePerSec) {
+  continuousMoneyRain = true;
+  for (let n = 0; n < 30; n++) spawnParticle("money"); // immediate burst for instant payoff
+  setInterval(() => { spawnParticle("money"); }, Math.max(20, 1000 / ratePerSec));
+  ensureLoopRunning();
+}
+
+function particleLoop() {
+  cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  particles.forEach(p => {
+    p.life++;
+    p.rotation += p.spin;
+    p.x += p.speedX;
+    p.y += p.speedY;
+    p.speedY += 0.03;
+    const fade = p.life > p.maxLife - 40 ? Math.max(0, (p.maxLife - p.life) / 40) : 1;
+
+    if (p.kind === "confetti") {
+      cctx.save();
+      cctx.translate(p.x, p.y);
+      cctx.rotate((p.rotation * Math.PI) / 180);
+      cctx.globalAlpha = fade;
+      cctx.fillStyle = p.color;
+      if (p.shape === "rect") {
+        cctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      } else {
+        cctx.beginPath();
+        cctx.arc(0, 0, p.size / 2.4, 0, Math.PI * 2);
+        cctx.fill();
+      }
+      cctx.restore();
+    } else if (p.kind === "money") {
+      cctx.save();
+      cctx.translate(p.x, p.y);
+      cctx.rotate((p.rotation * Math.PI) / 180);
+      cctx.globalAlpha = fade;
+      cctx.fillStyle = p.color;
+      cctx.strokeStyle = "rgba(0,0,0,0.35)";
+      cctx.lineWidth = 1.5;
+      cctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      cctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      cctx.fillStyle = "rgba(255,255,255,0.92)";
+      cctx.font = `bold ${Math.round(p.h * 0.55)}px Consolas, monospace`;
+      cctx.textAlign = "center";
+      cctx.textBaseline = "middle";
+      cctx.fillText(p.label, 0, 1);
+      cctx.restore();
+    }
+  });
+  particles = particles.filter(p => p.life < p.maxLife && p.y < confettiCanvas.height + 60);
+  if (particles.length > 0 || continuousMoneyRain) {
+    requestAnimationFrame(particleLoop);
+  } else {
+    particlesRunning = false;
+    cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  }
+}
+
+// ---------------- INIT ----------------
+renderRooms();
+renderProgress("title");
+</script>
+</body>
+</html>

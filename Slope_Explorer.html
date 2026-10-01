@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Slope Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #101c30;
+    --bg-panel: #16243c;
+    --bg-panel-2: #1c2d49;
+    --grid-minor: rgba(232, 236, 241, 0.09);
+    --grid-major: rgba(232, 236, 241, 0.22);
+    --axis: #cfd7e6;
+    --ink: #f3f1ea;
+    --muted: #92a1ba;
+    --run: #5fd3c4;
+    --rise: #ffb454;
+    --line: #ff7a6b;
+    --accent: #ffd166;
+    --accent-ink: #26170a;
+    --good: #7ee3a8;
+    --border: rgba(232, 236, 241, 0.14);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+  }
+  h1, h2, h3, .num-label { font-family: "Space Grotesk", system-ui, sans-serif; }
+  .mono { font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 14px 20px 24px;
+  }
+
+  header {
+    margin-bottom: 10px;
+  }
+  header h1 {
+    font-size: clamp(20px, 2.8vw, 26px);
+    font-weight: 700;
+    margin: 0 0 3px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    color: var(--muted);
+    margin: 0;
+    font-size: 13.5px;
+    max-width: 62ch;
+    line-height: 1.35;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.8fr);
+    gap: 14px;
+    height: min(56vh, 480px);
+  }
+  @media (max-width: 480px) {
+    .layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(0, 1fr) auto;
+      height: min(82vh, 620px);
+    }
+    .graph-card { min-height: 0; }
+  }
+
+  .lower-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  @media (max-width: 820px) {
+    .lower-row { grid-template-columns: 1fr; }
+  }
+
+  .graph-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  svg#plane {
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    display: block;
+    touch-action: none;
+    cursor: default;
+  }
+  @media (max-width: 480px) {
+    svg#plane { width: 100%; height: 100%; max-height: 100%; }
+  }
+  .point-handle { cursor: grab; }
+  .point-handle:active { cursor: grabbing; }
+
+  .side {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .side .panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: auto;
+  }
+  @media (max-width: 480px) {
+    .side { height: auto; max-height: 34vh; }
+    .side .panel { overflow: auto; }
+  }
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 18px 20px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+    color: var(--muted);
+    margin: 0 0 12px;
+    letter-spacing: 0.01em;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 14.5px;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .label { color: var(--muted); }
+  .stat-row .val { font-size: 15px; font-weight: 600; }
+  .val.run-c { color: var(--run); }
+  .val.rise-c { color: var(--rise); }
+
+  .slope-hero {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 14px;
+    flex-wrap: wrap;
+  }
+  .slope-hero .m-label {
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .slope-hero .m-val {
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--line);
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+  .m-eq {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--line);
+    line-height: 1;
+  }
+  .frac-sign {
+    margin-right: 2px;
+  }
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    font-size: 0.62em;
+    vertical-align: middle;
+  }
+  .frac .num,
+  .frac .den {
+    padding: 0 3px;
+  }
+  .frac .num {
+    border-bottom: 2px solid currentColor;
+    padding-bottom: 2px;
+  }
+  .frac .den {
+    padding-top: 2px;
+  }
+  .slope-hero .m-dec {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .desc {
+    font-size: 13.5px;
+    color: var(--ink);
+    background: var(--bg-panel-2);
+    border-radius: 10px;
+    padding: 10px 12px;
+    line-height: 1.5;
+  }
+
+  .eq {
+    margin-top: 12px;
+    font-size: 16px;
+    text-align: center;
+    padding: 10px;
+    background: var(--bg-panel-2);
+    border-radius: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  .btnrow {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  button {
+    font-family: "Inter", sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--bg-panel-2);
+    color: var(--ink);
+    padding: 9px 14px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+  button:hover { background: #223554; }
+  button:active { transform: scale(0.97); }
+  button.primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: transparent;
+  }
+  button.primary:hover { background: #ffdb85; }
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .challenge-score {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: -2px 0 12px;
+  }
+  .challenge-score.goal-met {
+    color: var(--good);
+  }
+  .challenge-target {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 4px 0 10px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .challenge-status {
+    font-size: 13.5px;
+    color: var(--muted);
+    min-height: 18px;
+  }
+  .challenge-status.win { color: var(--good); font-weight: 600; }
+
+  footer {
+    margin-top: 26px;
+    color: var(--muted);
+    font-size: 12.5px;
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Slope Explorer</h1>
+    <p>Drag the two points on the grid. Watch how the rise, the run, and the slope change as the line moves.</p>
+  </header>
+
+  <div class="layout">
+    <div class="graph-card">
+      <svg id="plane" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Coordinate plane with a draggable line">
+      </svg>
+    </div>
+
+    <div class="side">
+      <div class="panel">
+        <h2>Slope</h2>
+        <div class="slope-hero">
+          <span class="m-label">m =</span>
+          <span class="m-val mono" id="slopeFrac">1</span>
+          <span class="m-eq mono" id="slopeReducedEq" style="display:none;">=</span>
+          <span class="m-val mono" id="slopeReduced" style="display:none;"></span>
+          <span class="m-dec mono" id="slopeDec"></span>
+        </div>
+        <div class="stat-row"><span class="label">Point A</span><span class="val mono" id="ptA">(-4, -3)</span></div>
+        <div class="stat-row"><span class="label">Point B</span><span class="val mono" id="ptB">(4, 5)</span></div>
+        <div class="stat-row"><span class="label">Rise (&Delta;y)</span><span class="val rise-c mono" id="riseVal">8</span></div>
+        <div class="stat-row"><span class="label">Run (&Delta;x)</span><span class="val run-c mono" id="runVal">8</span></div>
+        <div class="desc" id="slopeDesc">A positive slope — the line climbs as it moves right.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lower-row">
+    <div class="panel">
+      <h2>Controls</h2>
+      <div class="btnrow">
+        <button id="randomizeBtn" class="primary">New random line</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="panel" id="challengePanel">
+      <h2>Slope challenge</h2>
+      <div class="challenge-score mono" id="challengeScoreRow">Correct: <span id="challengeScore">0</span> / <span id="challengeGoal">10</span></div>
+      <div id="challengeIdle">
+        <p style="font-size:13.5px;color:var(--muted);margin:0 0 12px;line-height:1.5;">Get a target slope, then drag the points to match it.</p>
+        <button id="startChallengeBtn" class="primary">Start a challenge</button>
+      </div>
+      <div id="challengeActive" style="display:none;">
+        <div style="font-size:13px;color:var(--muted);">Make the slope equal to</div>
+        <div class="challenge-target mono" id="challengeTarget">2/3</div>
+        <div class="challenge-status" id="challengeStatus">Drag the points to match.</div>
+        <div class="btnrow" style="margin-top:10px;">
+          <button id="newChallengeBtn">New target</button>
+          <button id="stopChallengeBtn">Stop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Grid runs from &minus;10 to 10. Points snap to whole numbers.</footer>
+</div>
+
+<script>
+(function () {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("plane");
+  const SIZE = 640, MARGIN = 40, RANGE = 10; // grid from -10..10
+  const CELL = (SIZE - 2 * MARGIN) / (RANGE * 2);
+
+  function toX(gx) { return MARGIN + (gx + RANGE) * CELL; }
+  function toY(gy) { return MARGIN + (RANGE - gy) * CELL; }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+
+  function buildFracNode(num, den) {
+    // returns a fragment: optional "-" sign + stacked fraction (or a bare integer if den === 1)
+    const frag = document.createDocumentFragment();
+    const negative = num < 0;
+    if (negative) {
+      const sign = document.createElement("span");
+      sign.className = "frac-sign";
+      sign.textContent = "-";
+      frag.appendChild(sign);
+    }
+    if (den === 1) {
+      const whole = document.createElement("span");
+      whole.textContent = Math.abs(num);
+      frag.appendChild(whole);
+      return frag;
+    }
+    const frac = document.createElement("span");
+    frac.className = "frac";
+    const numEl = document.createElement("span");
+    numEl.className = "num";
+    numEl.textContent = Math.abs(num);
+    const denEl = document.createElement("span");
+    denEl.className = "den";
+    denEl.textContent = den;
+    frac.appendChild(numEl);
+    frac.appendChild(denEl);
+    frag.appendChild(frac);
+    return frag;
+  }
+
+  let A = { x: -4, y: -3 };
+  let B = { x: 4, y: 5 };
+  let dragTarget = null;
+  let challenge = { active: false, target: null };
+
+  function makeEl(tag, attrs) {
+    const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  // ---- static grid (built once) ----
+  const gridLayer = makeEl("g", {});
+  const dynamicLayer = makeEl("g", { id: "dyn" });
+  svg.appendChild(gridLayer);
+  svg.appendChild(dynamicLayer);
+
+  function buildGrid() {
+    for (let i = -RANGE; i <= RANGE; i++) {
+      const major = (i % 5 === 0);
+      gridLayer.appendChild(makeEl("line", {
+        x1: toX(i), y1: toY(-RANGE), x2: toX(i), y2: toY(RANGE),
+        stroke: major ? "var(--grid-major)" : "var(--grid-minor)", "stroke-width": major ? 1.2 : 1
+      }));
+      gridLayer.appendChild(makeEl("line", {
+        x1: toX(-RANGE), y1: toY(i), x2: toX(RANGE), y2: toY(i),
+        stroke: major ? "var(--grid-major)" : "var(--grid-minor)", "stroke-width": major ? 1.2 : 1
+      }));
+    }
+    // axes
+    gridLayer.appendChild(makeEl("line", { x1: toX(-RANGE), y1: toY(0), x2: toX(RANGE), y2: toY(0), stroke: "var(--axis)", "stroke-width": 1.6 }));
+    gridLayer.appendChild(makeEl("line", { x1: toX(0), y1: toY(-RANGE), x2: toX(0), y2: toY(RANGE), stroke: "var(--axis)", "stroke-width": 1.6 }));
+    // labels every 5
+    [-10, -5, 5, 10].forEach(v => {
+      const lx = makeEl("text", { x: toX(v), y: toY(0) + 16, "text-anchor": "middle", fill: "var(--muted)", "font-size": "11", "font-family": "JetBrains Mono, monospace" });
+      lx.textContent = v; gridLayer.appendChild(lx);
+      const ly = makeEl("text", { x: toX(0) - 8, y: toY(v) + 4, "text-anchor": "end", fill: "var(--muted)", "font-size": "11", "font-family": "JetBrains Mono, monospace" });
+      ly.textContent = v; gridLayer.appendChild(ly);
+    });
+    const zero = makeEl("text", { x: toX(0) - 8, y: toY(0) + 16, "text-anchor": "end", fill: "var(--muted)", "font-size": "11", "font-family": "JetBrains Mono, monospace" });
+    zero.textContent = "0"; gridLayer.appendChild(zero);
+  }
+  buildGrid();
+
+  function lineEndpointsThrough(p1, p2) {
+    // returns two points on the grid boundary that the true line through p1,p2 crosses
+    if (p1.x === p2.x) {
+      return [{ x: p1.x, y: -RANGE }, { x: p1.x, y: RANGE }];
+    }
+    const R = RANGE;
+    const m = (p2.y - p1.y) / (p2.x - p1.x);
+    const b = p1.y - m * p1.x; // y = mx + b
+    const within = (v) => v >= -R - 1e-6 && v <= R + 1e-6;
+    const pts = [];
+    let y = m * (-R) + b;
+    if (within(y)) pts.push({ x: -R, y: clamp(y, -R, R) });
+    y = m * R + b;
+    if (within(y)) pts.push({ x: R, y: clamp(y, -R, R) });
+    if (m !== 0) {
+      let x = (-R - b) / m;
+      if (within(x)) pts.push({ x: clamp(x, -R, R), y: -R });
+      x = (R - b) / m;
+      if (within(x)) pts.push({ x: clamp(x, -R, R), y: R });
+    }
+    // dedupe near-identical points (can happen at corners)
+    const uniq = [];
+    pts.forEach(p => {
+      if (!uniq.some(q => Math.abs(q.x - p.x) < 1e-6 && Math.abs(q.y - p.y) < 1e-6)) uniq.push(p);
+    });
+    if (uniq.length < 2) return [p1, p2];
+    // pick the two boundary points farthest apart, so the drawn segment spans the full grid
+    let best = [uniq[0], uniq[1]], bestDist = -1;
+    for (let i = 0; i < uniq.length; i++) {
+      for (let j = i + 1; j < uniq.length; j++) {
+        const d = Math.hypot(uniq[i].x - uniq[j].x, uniq[i].y - uniq[j].y);
+        if (d > bestDist) { bestDist = d; best = [uniq[i], uniq[j]]; }
+      }
+    }
+    return best;
+  }
+
+  function render() {
+    dynamicLayer.innerHTML = "";
+    const run = B.x - A.x;
+    const rise = B.y - A.y;
+    const vertical = run === 0;
+
+    // full line
+    if (!vertical || true) {
+      const [e1, e2] = lineEndpointsThrough(A, B);
+      dynamicLayer.appendChild(makeEl("line", {
+        x1: toX(e1.x), y1: toY(e1.y), x2: toX(e2.x), y2: toY(e2.y),
+        stroke: "var(--line)", "stroke-width": 3, "stroke-linecap": "round"
+      }));
+    }
+
+    // rise/run triangle: horizontal (run) then vertical (rise)
+    const corner = { x: B.x, y: A.y };
+    dynamicLayer.appendChild(makeEl("line", {
+      x1: toX(A.x), y1: toY(A.y), x2: toX(corner.x), y2: toY(corner.y),
+      stroke: "var(--run)", "stroke-width": 2.5, "stroke-dasharray": "6 5"
+    }));
+    dynamicLayer.appendChild(makeEl("line", {
+      x1: toX(corner.x), y1: toY(corner.y), x2: toX(B.x), y2: toY(B.y),
+      stroke: "var(--rise)", "stroke-width": 2.5, "stroke-dasharray": "6 5"
+    }));
+
+    // run / rise labels at midpoints
+    const runLabel = makeEl("text", {
+      x: (toX(A.x) + toX(corner.x)) / 2, y: toY(A.y) + (A.y >= corner.y ? 16 : -10),
+      "text-anchor": "middle", fill: "var(--run)", "font-size": "13", "font-weight": "600", "font-family": "JetBrains Mono, monospace"
+    });
+    runLabel.textContent = "run " + run;
+    dynamicLayer.appendChild(runLabel);
+
+    const riseLabel = makeEl("text", {
+      x: toX(corner.x) + (B.x >= corner.x ? 10 : -10), y: (toY(corner.y) + toY(B.y)) / 2,
+      "text-anchor": B.x >= corner.x ? "start" : "end", fill: "var(--rise)", "font-size": "13", "font-weight": "600", "font-family": "JetBrains Mono, monospace"
+    });
+    riseLabel.textContent = "rise " + rise;
+    dynamicLayer.appendChild(riseLabel);
+
+    // points
+    [["A", A, "hA"], ["B", B, "hB"]].forEach(([name, pt, id]) => {
+      const g = makeEl("g", { class: "point-handle", "data-name": name });
+      g.appendChild(makeEl("circle", { cx: toX(pt.x), cy: toY(pt.y), r: 15, fill: "transparent" }));
+      g.appendChild(makeEl("circle", { cx: toX(pt.x), cy: toY(pt.y), r: 7, fill: "var(--ink)", stroke: "var(--bg)", "stroke-width": 2 }));
+      const lbl = makeEl("text", { x: toX(pt.x) + 12, y: toY(pt.y) - 10, fill: "var(--ink)", "font-size": "13", "font-weight": "600", "font-family": "Space Grotesk, sans-serif" });
+      lbl.textContent = name;
+      g.appendChild(lbl);
+      g.addEventListener("pointerdown", (e) => startDrag(e, name));
+      dynamicLayer.appendChild(g);
+    });
+
+    updateStats(run, rise, vertical);
+  }
+
+  function updateStats(run, rise, vertical) {
+    document.getElementById("ptA").textContent = `(${A.x}, ${A.y})`;
+    document.getElementById("ptB").textContent = `(${B.x}, ${B.y})`;
+    document.getElementById("runVal").textContent = run;
+    document.getElementById("riseVal").textContent = rise;
+
+    const slopeFracEl = document.getElementById("slopeFrac");
+    const slopeReducedEqEl = document.getElementById("slopeReducedEq");
+    const slopeReducedEl = document.getElementById("slopeReduced");
+    const slopeDecEl = document.getElementById("slopeDec");
+    const descEl = document.getElementById("slopeDesc");
+
+    let m = null, decText = "";
+    slopeFracEl.innerHTML = "";
+    slopeReducedEl.innerHTML = "";
+    slopeReducedEqEl.style.display = "none";
+    slopeReducedEl.style.display = "none";
+
+    if (vertical) {
+      slopeFracEl.appendChild(buildFracNode(rise, 0));
+      decText = "= undefined";
+      descEl.textContent = "The run is 0 — this line is vertical, so the slope is undefined.";
+    } else {
+      m = rise / run;
+      let num = rise, den = run;
+      if (den < 0) { den *= -1; num *= -1; }
+      decText = "= " + (Math.round(m * 1000) / 1000);
+
+      slopeFracEl.appendChild(buildFracNode(num, den));
+
+      const g = gcd(num, den);
+      if (g > 1) {
+        const redNum = num / g, redDen = den / g;
+        slopeReducedEl.appendChild(buildFracNode(redNum, redDen));
+        slopeReducedEqEl.style.display = "inline";
+        slopeReducedEl.style.display = "inline-flex";
+      }
+
+      if (m > 0) descEl.textContent = "A positive slope — the line climbs as it moves left to right.";
+      else if (m < 0) descEl.textContent = "A negative slope — the line falls as it moves left to right.";
+      else descEl.textContent = "A slope of zero — the line is horizontal, it neither rises nor falls.";
+    }
+    slopeDecEl.textContent = decText;
+
+    if (challenge.active) checkChallenge(m);
+  }
+
+  // ---- dragging ----
+  function svgPoint(evt) {
+    const rect = svg.getBoundingClientRect();
+    const scaleX = SIZE / rect.width, scaleY = SIZE / rect.height;
+    const sx = (evt.clientX - rect.left) * scaleX;
+    const sy = (evt.clientY - rect.top) * scaleY;
+    const gx = clamp(Math.round((sx - MARGIN) / CELL - RANGE), -RANGE, RANGE);
+    const gy = clamp(Math.round(RANGE - (sy - MARGIN) / CELL), -RANGE, RANGE);
+    return { x: gx, y: gy };
+  }
+
+  function startDrag(evt, name) {
+    evt.preventDefault();
+    dragTarget = name;
+    const move = (e) => {
+      const p = svgPoint(e);
+      if (name === "A") {
+        if (p.x === B.x && p.y === B.y) return;
+        A = p;
+      } else {
+        if (p.x === A.x && p.y === A.y) return;
+        B = p;
+      }
+      render();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      dragTarget = null;
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
+  // ---- controls ----
+  function randomPoints() {
+    let a, b;
+    do {
+      a = { x: Math.floor(Math.random() * 15) - 7, y: Math.floor(Math.random() * 15) - 7 };
+      b = { x: Math.floor(Math.random() * 15) - 7, y: Math.floor(Math.random() * 15) - 7 };
+    } while (a.x === b.x && a.y === b.y);
+    A = a; B = b;
+    render();
+  }
+
+  document.getElementById("randomizeBtn").addEventListener("click", randomPoints);
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    A = { x: -4, y: -3 }; B = { x: 4, y: 5 };
+    render();
+  });
+
+  // ---- challenge mode ----
+  const idlePanel = document.getElementById("challengeIdle");
+  const activePanel = document.getElementById("challengeActive");
+  const targetEl = document.getElementById("challengeTarget");
+  const statusEl = document.getElementById("challengeStatus");
+  const scoreRowEl = document.getElementById("challengeScoreRow");
+  const scoreEl = document.getElementById("challengeScore");
+  const GOAL = 10;
+  challenge.correct = 0;
+
+  function updateScoreDisplay() {
+    scoreEl.textContent = challenge.correct;
+    scoreRowEl.classList.toggle("goal-met", challenge.correct >= GOAL);
+  }
+
+  function newTarget() {
+    const options = [
+      [1, 1], [-1, 1], [2, 1], [-2, 1], [1, 2], [-1, 2],
+      [3, 1], [-3, 1], [1, 3], [-1, 3], [3, 2], [-3, 2],
+      [2, 3], [-2, 3], [0, 1]
+    ];
+    const [num, den] = options[Math.floor(Math.random() * options.length)];
+    challenge.target = { num, den, solved: false };
+    targetEl.innerHTML = "";
+    targetEl.appendChild(buildFracNode(num, den));
+    statusEl.textContent = "Drag the points to match.";
+    statusEl.classList.remove("win");
+  }
+
+  document.getElementById("startChallengeBtn").addEventListener("click", () => {
+    challenge.active = true;
+    idlePanel.style.display = "none";
+    activePanel.style.display = "block";
+    newTarget();
+    render();
+  });
+  document.getElementById("newChallengeBtn").addEventListener("click", () => { newTarget(); render(); });
+  document.getElementById("stopChallengeBtn").addEventListener("click", () => {
+    challenge.active = false;
+    idlePanel.style.display = "block";
+    activePanel.style.display = "none";
+  });
+
+  function checkChallenge(m) {
+    if (m === null || !challenge.target) return;
+    const targetVal = challenge.target.num / challenge.target.den;
+    if (Math.abs(m - targetVal) < 1e-9) {
+      if (!challenge.target.solved) {
+        challenge.target.solved = true;
+        challenge.correct += 1;
+        updateScoreDisplay();
+      }
+      statusEl.textContent = challenge.correct >= GOAL
+        ? "Correct — goal reached! Click New target to keep practicing."
+        : "Correct! Click New target to keep going.";
+      statusEl.classList.add("win");
+    } else if (!challenge.target.solved) {
+      statusEl.textContent = "Drag the points to match.";
+      statusEl.classList.remove("win");
+    }
+  }
+
+  updateScoreDisplay();
+  render();
+})();
+</script>
+</body>
+</html>
