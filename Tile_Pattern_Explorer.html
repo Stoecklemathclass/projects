@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Find Figure 0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: graph-paper classroom tool. Pattern strip on top, drawing board + coaching panel below. */
+:root{
+  --paper:#EAF0F4; --panel:#FFFFFF; --ink:#18262F; --muted:#5A6B77;
+  --grid:#CBD7DF; --dot:#98AAB6;
+  --tile:#2E9C8A; --tile-edge:#1D6B5F; --new:#F2A93B; --leave:#E0715F;
+  --pen:#2F5BE0; --good:#23804F; --bad:#B8402F; --fill:rgba(46,156,138,.18);
+  --display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,Segoe UI,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#111A20; --panel:#19242C; --ink:#E3ECF1; --muted:#95A7B3;
+  --grid:#2D3C47; --dot:#4F6371;
+  --tile:#3BB39E; --tile-edge:#8FE0D0; --new:#F5B653; --leave:#F08A78;
+  --pen:#86A3FF; --good:#5CCB8D; --bad:#F08A78; --fill:rgba(59,179,158,.22); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#111A20; --panel:#19242C; --ink:#E3ECF1; --muted:#95A7B3;
+  --grid:#2D3C47; --dot:#4F6371;
+  --tile:#3BB39E; --tile-edge:#8FE0D0; --new:#F5B653; --leave:#F08A78;
+  --pen:#86A3FF; --good:#5CCB8D; --bad:#F08A78; --fill:rgba(59,179,158,.22); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;background-attachment:fixed}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,42px);line-height:1;margin:0;letter-spacing:-.01em}
+h1 .zero{display:inline-grid;place-items:center;width:1.1em;height:1.1em;border:3px dashed var(--pen);border-radius:6px;color:var(--pen);margin-left:.1em}
+.sub{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.score{font-family:var(--mono);font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{width:34px;height:34px;border-radius:6px;border:2px solid var(--grid);background:var(--panel);color:var(--ink);
+  font-family:var(--mono);font-weight:700;font-size:14px;cursor:pointer}
+.chip.solved{background:var(--tile);border-color:var(--tile);color:#fff}
+.chip.shown{border-color:var(--new)}
+.chip.current{outline:3px solid var(--pen);outline-offset:2px}
+.card{background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:18px;box-shadow:0 1px 0 var(--grid)}
+.card h2{font-family:var(--display);font-weight:800;font-size:22px;margin:0}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pattern-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.figs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fig{display:grid;gap:6px;justify-items:center;min-width:0}
+.fig svg{width:100%;height:150px;display:block}
+.fig .label{font-family:var(--display);font-weight:600;font-size:16px}
+.fig .count{font-family:var(--mono);font-size:13px;color:var(--muted);min-height:1.4em}
+.fig.mystery .frame{border:2px dashed var(--pen);border-radius:8px;width:100%}
+.mystery-q{font-family:var(--display);font-weight:800;font-size:64px;fill:var(--pen)}
+.tile{fill:var(--tile);stroke:var(--tile-edge);stroke-width:.06}
+.tile.new{fill:var(--new)}
+.tile.leave{fill:var(--leave)}
+.legend{font-size:14px;color:var(--muted);margin-top:10px}
+.legend b{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.play{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:820px){.play{grid-template-columns:1fr}}
+.board-card{display:grid;gap:12px}
+#board{width:100%;max-width:520px;margin-inline:auto;height:auto;display:block;background:var(--panel);border-radius:6px;cursor:crosshair;touch-action:manipulation;user-select:none}
+#board .gl{stroke:var(--grid);stroke-width:.03}
+#board .dt{fill:var(--dot)}
+#board .seg{stroke:var(--pen);stroke-width:.12;stroke-linecap:round}
+#board .seg.stray{stroke:var(--bad);stroke-dasharray:.2 .15}
+#board .preview{stroke:var(--pen);stroke-width:.1;stroke-linecap:round;opacity:.5;stroke-dasharray:.25 .15}
+#board .cursor{fill:none;stroke:var(--pen);stroke-width:.06}
+#board .start{fill:var(--pen)}
+#board .enc{fill:var(--fill)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button.btn{font:inherit;font-weight:700;font-size:15px;padding:9px 16px;border-radius:8px;border:2px solid var(--grid);
+  background:var(--panel);color:var(--ink);cursor:pointer}
+button.btn:hover{border-color:var(--pen)}
+button.btn.primary{background:var(--pen);border-color:var(--pen);color:#fff}
+button.btn:focus-visible,.chip:focus-visible{outline:3px solid var(--new);outline-offset:2px}
+button.btn.small{font-size:13px;padding:5px 10px}
+button.btn.warn{border-color:var(--bad);color:var(--bad)}
+button.btn[disabled]{opacity:.45;cursor:not-allowed}
+.status{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.how{font-size:14px;color:var(--muted);margin:0}
+.side{display:grid;gap:14px}
+.feedback{border-radius:8px;padding:12px 14px;border:2px solid var(--grid);min-height:3.2em}
+.feedback.good{border-color:var(--good)}
+.feedback.bad{border-color:var(--bad)}
+.feedback strong{display:block;font-family:var(--display);font-size:19px}
+.feedback.good strong{color:var(--good)}
+.feedback.bad strong{color:var(--bad)}
+.hints{display:grid;gap:8px}
+.hints .btn{text-align:left}
+.reveal{display:grid;gap:10px}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px}
+th,td{border:1px solid var(--grid);padding:6px 12px;text-align:center}
+th{font-family:var(--body);font-weight:700;text-align:left;color:var(--muted)}
+td.z{color:var(--pen);font-weight:700}
+.eq{font-family:var(--mono);font-weight:700;font-size:24px;color:var(--pen)}
+.facts{margin:0;padding-left:18px}
+.ident{display:grid;gap:10px}
+.ident-form{display:grid;grid-template-columns:minmax(0,1fr) 5.5em;gap:10px 12px;align-items:center}
+.ident-form label{font-weight:700;line-height:1.25}
+.ident-form label span{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.ident-form input{font:inherit;font-family:var(--mono);font-size:18px;font-weight:700;width:100%;padding:6px 8px;border-radius:8px;
+  border:2px solid var(--grid);background:var(--paper);color:var(--ink);text-align:center}
+.ident-form input:focus-visible{outline:3px solid var(--new);outline-offset:1px}
+.ident-form input.ok{border-color:var(--good)}
+.ident-form input.no{border-color:var(--bad)}
+.ident-form .btn{grid-column:1/-1;justify-self:start}
+.ident-msg{margin:0;font-size:15px;min-height:1.5em}
+.ident-msg.good{color:var(--good);font-weight:700}
+.ident-msg.bad{color:var(--bad)}
+@media (prefers-reduced-motion:no-preference){.feedback{transition:border-color .2s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Find Figure <span class="zero">0</span></h1>
+      <p class="sub">Study Figures 1, 2 and 3. Work backward to figure out what Figure 0 looks like, then draw it on the grid.</p>
+    </div>
+    <div style="display:grid;gap:8px;justify-items:end">
+      <div class="tools"><div class="score" id="score">Solved 0 of 10</div><button class="btn small" id="reset" type="button">Reset progress</button></div>
+      <div class="chips" id="chips" aria-label="Choose a pattern"></div>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="pname">
+    <div class="pattern-head">
+      <div><div class="eyebrow" id="pnum">Pattern 1</div><h2 id="pname">Growing Row</h2></div>
+      <div class="tools">
+        <button class="btn" id="prev">← Back</button>
+        <button class="btn" id="next">Next pattern →</button>
+      </div>
+    </div>
+    <div class="figs" id="figs"></div>
+    <div class="legend" id="legend" hidden></div>
+  </section>
+
+  <section class="play">
+    <div class="card board-card">
+      <div class="tools">
+        <button class="btn" id="undo">Undo</button>
+        <button class="btn" id="clear">Clear</button>
+        <button class="btn primary" id="check">Check my Figure 0</button>
+        <span class="status" id="status">Tiles enclosed: 0</span>
+      </div>
+      <svg id="board" aria-label="Drawing grid"></svg>
+      <p class="how">Click a grid point to start a line. Move to where the line should end and click again. Lines go straight across or straight up and down. Press Esc or right-click to cancel a line.</p>
+    </div>
+    <div class="side">
+      <div class="feedback" id="feedback" aria-live="polite">
+        <strong>Draw Figure 0</strong>
+        Outline the shape. You can draw lines between tiles too, but you don't have to.
+      </div>
+      <div class="card hints">
+        <div class="eyebrow">Hints</div>
+        <button class="btn" id="hCount">Show tile counts</button>
+        <button class="btn" id="hChange">Show what changes</button>
+        <button class="btn" id="hAnswer" hidden>Show Figure 0</button>
+      </div>
+      <div class="card ident" id="ident" hidden>
+        <div class="eyebrow">Describe the pattern</div>
+        <form id="identForm" class="ident-form" novalidate>
+          <label for="inGrowth">Growth rate <span>tiles added each figure</span></label>
+          <input id="inGrowth" type="number" inputmode="numeric" step="1" autocomplete="off">
+          <label for="inStart">Starting value <span>tiles in Figure 0</span></label>
+          <input id="inStart" type="number" inputmode="numeric" step="1" autocomplete="off">
+          <button class="btn primary" type="submit" id="identCheck">Check</button>
+        </form>
+        <p class="ident-msg" id="identMsg" aria-live="polite"></p>
+      </div>
+      <div class="card reveal" id="reveal" hidden>
+        <div class="eyebrow">The pattern</div>
+        <div class="tbl-wrap"><table id="tbl"></table></div>
+        <ul class="facts" id="facts"></ul>
+        <div class="eq" id="eq"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const range=(a,b)=>{const r=[];for(let i=a;i<=b;i++)r.push(i);return r};
+const PATTERNS=[
+  {name:"Growing Row",f:n=>range(0,n+1).map(c=>[c,0])},
+  {name:"Tower on a Base",f:n=>[[0,0],[1,0],[2,0],...range(1,n).map(r=>[1,r])]},
+  {name:"Corner",f:n=>[...range(0,n+1).map(r=>[0,r]),...range(1,n+1).map(c=>[c,0])]},
+  {name:"Two Posts",f:n=>[...range(0,n).map(r=>[0,r]),...range(0,n).map(r=>[2,r])]},
+  {name:"Brick Wall",f:n=>{const a=[];for(let c=0;c<=n;c++)for(let r=0;r<3;r++)a.push([c,r]);return a}},
+  {name:"Plus Sign",f:n=>{const a=[[0,0]];for(let k=1;k<=n;k++)a.push([k,0],[-k,0],[0,k],[0,-k]);return a}},
+  {name:"Letter U",f:n=>[...range(0,n+1).map(r=>[0,r]),...range(0,n+1).map(r=>[2,r]),[1,0]]},
+  {name:"Block with Arms",f:n=>[[0,0],[1,0],[0,1],[1,1],...range(2,n+1).map(c=>[c,0]),...range(2,n+1).map(r=>[0,r])]},
+  {name:"Letter T",f:n=>[...range(-(n+1),n+1).map(c=>[c,0]),...range(1,n+1).map(k=>[0,-k])]},
+  {name:"Letter H",f:n=>[...range(0,n+2).map(r=>[0,r]),...range(0,n+2).map(r=>[2,r]),[1,1]]},
+];
+const BW=8,BH=6,NS="http://www.w3.org/2000/svg";
+const $=id=>document.getElementById(id);
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e};
+const key=(x,y)=>x+","+y;
+
+let saved={};try{saved=JSON.parse(localStorage.getItem("fig0-progress-v2")||"{}")}catch(e){}
+const state=PATTERNS.map((p,i)=>({segs:[],attempts:0,solved:!!(saved[i]&&saved[i].solved),shown:!!(saved[i]&&saved[i].shown),identified:!!(saved[i]&&saved[i].identified),hCount:false,hChange:false,stray:new Set()}));
+let cur=0,start=null,hover=null;
+function persist(){try{const o={};state.forEach((s,i)=>o[i]={solved:s.solved,shown:s.shown,identified:s.identified});localStorage.setItem("fig0-progress-v2",JSON.stringify(o))}catch(e){}}
+
+/* ---------- pattern math ---------- */
+const toScreen=cells=>cells.map(([c,r])=>[c,-r]);
+function normSet(cells){
+  if(!cells.length)return new Set();
+  const mx=Math.min(...cells.map(p=>p[0])),my=Math.min(...cells.map(p=>p[1]));
+  return new Set(cells.map(([x,y])=>key(x-mx,y-my)));
+}
+const sameSet=(a,b)=>a.size===b.size&&[...a].every(k=>b.has(k));
+function info(i){const p=PATTERNS[i];const counts=[0,1,2,3].map(n=>p.f(n).length);return{counts,m:counts[2]-counts[1],b:counts[0]}}
+function eqText(m,b){
+  let t="y = ";
+  if(m===1)t+="x";else if(m===-1)t+="−x";else t+=(m<0?"−"+(-m):m)+"x";
+  if(b>0)t+=" + "+b;else if(b<0)t+=" − "+(-b);
+  return t;
+}
+
+/* ---------- figure panels ---------- */
+function drawFigures(){
+  const p=PATTERNS[cur],s=state[cur],figs=$("figs");figs.innerHTML="";
+  const all=[0,1,2,3].map(n=>toScreen(p.f(n)));
+  const dims=all.slice(1).map(c=>{const xs=c.map(q=>q[0]),ys=c.map(q=>q[1]);return[Math.max(...xs)-Math.min(...xs)+1,Math.max(...ys)-Math.min(...ys)+1]});
+  const W=Math.max(4,...dims.map(d=>d[0]),s.solved||s.shown?dimsOf(all[0])[0]:0)+1,H=Math.max(3,...dims.map(d=>d[1]),s.solved||s.shown?dimsOf(all[0])[1]:0)+1;
+  const {m}=info(cur);
+  [0,1,2,3].map(n=>{
+    const box=document.createElement("div");box.className="fig"+(n===0?" mystery":"");
+    const frame=document.createElement("div");frame.className="frame";box.appendChild(frame);
+    const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:"xMidYMid meet",role:"img","aria-label":"Figure "+n},frame);
+    const reveal0=n===0&&(s.solved||s.shown);
+    if(n===0&&!reveal0){const t=el("text",{x:W/2,y:H/2,"text-anchor":"middle","dominant-baseline":"central",class:"mystery-q","font-size":Math.min(W,H)*.55},svg);t.textContent="?"}
+    else{
+      const cells=all[n],raw=p.f(n);
+      const xs=cells.map(q=>q[0]),ys=cells.map(q=>q[1]);
+      const minx=Math.min(...xs),miny=Math.min(...ys),w=Math.max(...xs)-minx+1,h=Math.max(...ys)-miny+1;
+      const ox=(W-w)/2-minx,oy=(H-h)/2-miny;
+      let mark=new Set(),cls="new";
+      if(s.hChange&&n>0){
+        if(m>=0&&n>=2){const prev=new Set(p.f(n-1).map(q=>key(...q)));raw.forEach(q=>{if(!prev.has(key(...q)))mark.add(key(...q))})}
+        if(m<0&&n<=2){cls="leave";const nx=new Set(p.f(n+1).map(q=>key(...q)));raw.forEach(q=>{if(!nx.has(key(...q)))mark.add(key(...q))})}
+      }
+      cells.forEach(([x,y],j)=>el("rect",{x:x+ox,y:y+oy,width:1,height:1,class:"tile"+(mark.has(key(...raw[j]))?" "+cls:"")},svg));
+    }
+    const lab=document.createElement("div");lab.className="label";lab.textContent="Figure "+n;box.appendChild(lab);
+    const ct=document.createElement("div");ct.className="count";
+    ct.textContent=(n===0?(reveal0&&s.identified?info(cur).counts[0]+" tiles":""):(s.hCount?p.f(n).length+" tiles":""));box.appendChild(ct);
+    figs.appendChild(box);
+  });
+  const lg=$("legend");
+  if(s.hChange){lg.hidden=false;lg.innerHTML=m>=0?'<b style="background:var(--new)"></b>Orange tiles were added since the figure before.':'<b style="background:var(--leave)"></b>Red tiles disappear in the next figure.'}
+  else lg.hidden=true;
+}
+function dimsOf(c){const xs=c.map(q=>q[0]),ys=c.map(q=>q[1]);return[Math.max(...xs)-Math.min(...xs)+1,Math.max(...ys)-Math.min(...ys)+1]}
+
+/* ---------- drawing board ---------- */
+const board=$("board");
+board.setAttribute("viewBox",`-0.5 -0.5 ${BW+1} ${BH+1}`);
+const gGrid=el("g",{},board),gEnc=el("g",{},board),gSeg=el("g",{},board),gTop=el("g",{},board);
+for(let x=0;x<=BW;x++)el("line",{x1:x,y1:0,x2:x,y2:BH,class:"gl"},gGrid);
+for(let y=0;y<=BH;y++)el("line",{x1:0,y1:y,x2:BW,y2:y,class:"gl"},gGrid);
+for(let x=0;x<=BW;x++)for(let y=0;y<=BH;y++)el("circle",{cx:x,cy:y,r:.07,class:"dt"},gGrid);
+
+function edgesOf(segs){
+  const E=new Map();
+  segs.forEach((sg,i)=>{
+    if(sg.y1===sg.y2){const a=Math.min(sg.x1,sg.x2),b=Math.max(sg.x1,sg.x2);for(let x=a;x<b;x++)E.set("h,"+x+","+sg.y1,i)}
+    else{const a=Math.min(sg.y1,sg.y2),b=Math.max(sg.y1,sg.y2);for(let y=a;y<b;y++)E.set("v,"+sg.x1+","+y,i)}
+  });
+  return E;
+}
+function enclosed(E){
+  const seen=new Set([key(-1,-1)]),q=[[-1,-1]];
+  while(q.length){
+    const [cx,cy]=q.pop();
+    const moves=[[cx+1,cy,"v,"+(cx+1)+","+cy],[cx-1,cy,"v,"+cx+","+cy],[cx,cy+1,"h,"+cx+","+(cy+1)],[cx,cy-1,"h,"+cx+","+cy]];
+    for(const [nx,ny,e] of moves){
+      if(nx<-1||ny<-1||nx>BW||ny>BH||E.has(e))continue;
+      const k=key(nx,ny);if(!seen.has(k)){seen.add(k);q.push([nx,ny])}
+    }
+  }
+  const out=[];for(let x=0;x<BW;x++)for(let y=0;y<BH;y++)if(!seen.has(key(x,y)))out.push([x,y]);
+  return out;
+}
+function drawBoard(){
+  const s=state[cur];gEnc.innerHTML="";gSeg.innerHTML="";gTop.innerHTML="";
+  const enc=enclosed(edgesOf(s.segs));
+  enc.forEach(([x,y])=>el("rect",{x,y,width:1,height:1,class:"enc"},gEnc));
+  s.segs.forEach((sg,i)=>el("line",{x1:sg.x1,y1:sg.y1,x2:sg.x2,y2:sg.y2,class:"seg"+(s.stray.has(i)?" stray":"")},gSeg));
+  if(start){
+    el("circle",{cx:start.x,cy:start.y,r:.18,class:"start"},gTop);
+    if(hover){const e=lockAxis(start,hover);el("line",{x1:start.x,y1:start.y,x2:e.x,y2:e.y,class:"preview"},gTop)}
+  }
+  if(hover)el("circle",{cx:start?lockAxis(start,hover).x:hover.x,cy:start?lockAxis(start,hover).y:hover.y,r:.22,class:"cursor"},gTop);
+  $("status").textContent="Tiles enclosed: "+enc.length;
+  $("undo").disabled=!s.segs.length&&!start;$("clear").disabled=!s.segs.length&&!start;
+}
+function lockAxis(a,b){return Math.abs(b.x-a.x)>=Math.abs(b.y-a.y)?{x:b.x,y:a.y}:{x:a.x,y:b.y}}
+function lattice(e){
+  const pt=board.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+  const p=pt.matrixTransform(board.getScreenCTM().inverse());
+  return{x:Math.max(0,Math.min(BW,Math.round(p.x))),y:Math.max(0,Math.min(BH,Math.round(p.y)))};
+}
+board.addEventListener("pointermove",e=>{hover=lattice(e);drawBoard()});
+board.addEventListener("pointerleave",()=>{hover=null;drawBoard()});
+board.addEventListener("pointerdown",e=>{
+  if(e.button!==0)return;
+  const p=lattice(e);hover=p;
+  if(!start){start=p}
+  else{
+    const end=lockAxis(start,p);
+    if(end.x!==start.x||end.y!==start.y){state[cur].segs.push({x1:start.x,y1:start.y,x2:end.x,y2:end.y});state[cur].stray.clear()}
+    start=null;
+  }
+  drawBoard();
+});
+board.addEventListener("contextmenu",e=>{e.preventDefault();start=null;drawBoard()});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){start=null;drawBoard()}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();undo()}
+});
+function undo(){if(start){start=null}else{state[cur].segs.pop();state[cur].stray.clear()}drawBoard()}
+$("undo").onclick=undo;
+$("clear").onclick=()=>{start=null;state[cur].segs=[];state[cur].stray.clear();drawBoard()};
+
+/* ---------- checking ---------- */
+function feedback(kind,title,msg){const f=$("feedback");f.className="feedback"+(kind?" "+kind:"");f.innerHTML="<strong></strong>";f.firstChild.textContent=title;f.append(msg)}
+$("check").onclick=()=>{
+  const s=state[cur];start=null;
+  const E=edgesOf(s.segs),enc=enclosed(E),encSet=new Set(enc.map(q=>key(...q)));
+  s.stray=new Set();
+  const strayEdges=[];
+  for(const [k,i] of E){
+    const [t,x,y]=k.split(","),X=+x,Y=+y;
+    const n=t==="h"?[key(X,Y-1),key(X,Y)]:[key(X-1,Y),key(X,Y)];
+    if(!n.some(c=>encSet.has(c)))strayEdges.push(i);
+  }
+  s.segs.forEach((sg,i)=>{const mine=[...E].filter(([,j])=>j===i).length;const bad=strayEdges.filter(j=>j===i).length;if(mine&&bad===mine)s.stray.add(i)});
+  const target=normSet(toScreen(PATTERNS[cur].f(0))),mine=normSet(enc),{counts,m}=info(cur);
+  if(!s.segs.length){feedback("bad","Nothing drawn yet","Click a grid point to start your first line.");drawBoard();return}
+  s.attempts++;
+  if(!enc.length){feedback("bad","Not closed yet","Your lines don't close off any tiles. Check that every side of your shape connects at the corners.")}
+  else if(sameSet(target,mine)){
+    s.solved=true;persist();
+    feedback("good","You found Figure 0!",s.stray.size?" Your shape is right. The dashed red lines aren't part of it, so you can undo them.":" Now find the growth rate and starting value below.");
+    showIdent();drawFigures();
+  }
+  else if(mine.size!==target.size){
+    const more=mine.size<target.size;
+    feedback("bad","Not quite",`Your shape has ${mine.size} tile${mine.size===1?"":"s"}. Figure 0 has ${more?"more":"fewer"} tiles than that. How many tiles ${m>=0?"are added":"are taken away"} each time?`);
+  }
+  else feedback("bad","Right number of tiles","You have the right number of tiles, but the shape doesn't match the pattern. Look at which part of each figure stays the same.");
+  if(!s.solved&&s.attempts>=3)$("hAnswer").hidden=false;
+  drawBoard();renderChips();
+};
+
+/* ---------- hints & reveal ---------- */
+$("hCount").onclick=()=>{state[cur].hCount=!state[cur].hCount;syncHints();drawFigures()};
+$("hChange").onclick=()=>{state[cur].hChange=!state[cur].hChange;syncHints();drawFigures()};
+$("hAnswer").onclick=()=>{state[cur].shown=true;persist();showIdent();drawFigures();renderChips();
+  feedback("","Here is Figure 0","Compare it with your drawing. Then find the growth rate and starting value below.")};
+function syncHints(){const s=state[cur];
+  $("hCount").textContent=s.hCount?"Hide tile counts":"Show tile counts";
+  $("hChange").textContent=s.hChange?"Hide what changes":"Show what changes";
+  $("hAnswer").hidden=s.solved||s.shown||s.attempts<3;
+}
+function showReveal(){
+  const {counts,m,b}=info(cur);
+  $("tbl").innerHTML="<tr><th>Figure (x)</th>"+counts.map((c,i)=>`<td class="${i?"":"z"}">${i}</td>`).join("")+"</tr><tr><th>Tiles (y)</th>"+counts.map((c,i)=>`<td class="${i?"":"z"}">${c}</td>`).join("")+"</tr>";
+  $("facts").innerHTML=`<li>Each figure ${m>=0?"adds":"loses"} <b>${Math.abs(m)}</b> tile${Math.abs(m)===1?"":"s"}, so the slope is <b>${m}</b>.</li><li>Figure 0 has <b>${b}</b> tiles, so the y-intercept is <b>${b}</b>.</li>`;
+  $("eq").textContent=eqText(m,b);
+  $("reveal").hidden=false;
+}
+
+function showIdent(){
+  const s=state[cur],{m,b}=info(cur),g=$("inGrowth"),st=$("inStart"),msg=$("identMsg");
+  $("ident").hidden=false;g.className=st.className="";
+  if(s.identified){g.value=m;st.value=b;g.className=st.className="ok";msg.className="ident-msg good";msg.textContent="Correct! Here's the equation for this pattern.";showReveal()}
+  else{g.value="";st.value="";msg.className="ident-msg";msg.textContent="Fill in both boxes, then check.";$("reveal").hidden=true}
+}
+$("identForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const s=state[cur],{m,b}=info(cur),g=$("inGrowth"),st=$("inStart"),msg=$("identMsg");
+  if(g.value.trim()===""||st.value.trim()===""){msg.className="ident-msg bad";msg.textContent="Fill in both boxes first.";return}
+  const gOk=Number(g.value)===m,sOk=Number(st.value)===b;
+  g.className=gOk?"ok":"no";st.className=sOk?"ok":"no";
+  if(gOk&&sOk){s.identified=true;persist();msg.className="ident-msg good";msg.textContent="Correct! Here's the equation for this pattern.";showReveal();drawFigures();return}
+  msg.className="ident-msg bad";
+  msg.textContent=!gOk&&!sOk?"Both need another look. Growth rate: how many tiles get added from one figure to the next? Starting value: how many tiles are in Figure 0?"
+    :!gOk?"Check the growth rate. Count the tiles in Figure 1 and Figure 2. How many were added?"
+    :"Check the starting value. Count the tiles in your Figure 0.";
+});
+
+/* ---------- navigation ---------- */
+function renderChips(){
+  const c=$("chips");c.innerHTML="";
+  PATTERNS.forEach((p,i)=>{const b=document.createElement("button");b.className="chip"+(state[i].solved?" solved":state[i].shown?" shown":"")+(i===cur?" current":"");
+    b.textContent=i+1;b.title=p.name;b.setAttribute("aria-label","Pattern "+(i+1)+": "+p.name+(state[i].solved?" (solved)":""));b.onclick=()=>go(i);c.appendChild(b)});
+  $("score").textContent=`Solved ${state.filter(s=>s.solved).length} of ${PATTERNS.length}`;
+}
+function go(i){
+  cur=(i+PATTERNS.length)%PATTERNS.length;start=null;
+  $("pnum").textContent="Pattern "+(cur+1);$("pname").textContent=PATTERNS[cur].name;
+  const s=state[cur];
+  $("reveal").hidden=true;$("ident").hidden=true;
+  if(s.solved){feedback("good","Solved",s.identified?"You already found Figure 0 for this pattern.":"You found Figure 0. Now find the growth rate and starting value below.");showIdent()}
+  else if(s.shown){feedback("","Figure 0 is shown","Try drawing it on the grid, then check.");showIdent()}
+  else feedback("","Draw Figure 0","Outline the shape. You can draw lines between tiles too, but you don't have to.");
+  syncHints();drawFigures();drawBoard();renderChips();
+}
+let resetTimer=null;
+$("reset").onclick=()=>{
+  const b=$("reset");
+  if(!b.classList.contains("warn")){b.classList.add("warn");b.textContent="Click again to erase all progress";
+    resetTimer=setTimeout(()=>{b.classList.remove("warn");b.textContent="Reset progress"},4000);return}
+  clearTimeout(resetTimer);b.classList.remove("warn");b.textContent="Reset progress";
+  state.forEach(s=>Object.assign(s,{segs:[],attempts:0,solved:false,shown:false,identified:false,hCount:false,hChange:false,stray:new Set()}));
+  try{localStorage.removeItem("fig0-progress-v2")}catch(e){}
+  go(0);feedback("","Progress reset","All 10 patterns are ready to try again.");
+};
+$("prev").onclick=()=>go(cur-1);$("next").onclick=()=>go(cur+1);
+go(0);
+</script>
+
+</body>
+</html>
